@@ -1,16 +1,18 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/System.hpp>
 #include <SFML/Audio.hpp>
+#include <SFML/Window.hpp>
 #include <sstream>
 
-class RenderSettings
+struct RenderSettings
 {
-public:
 	bool Watermark;
 	bool Wireframe;
 	int xres;
 	int yres;
+	int depth;
 	sf::Color DefaultText;
+	uint32_t WindowMode;
 };
 
 
@@ -18,20 +20,6 @@ public:
 int main()
 {
 	float Runtime = 0.0;
-
-	float timeconstant = 0.00000000001;
-	sf::SoundBuffer buffer;
-	sf::Sound sound;
-	const sf::Int16* samples;
-	std::vector<sf::Int16> goodsamples;
-	std::size_t count;
-	std::vector<sf::Int16> wetsamples;
-	int channels;
-	int sampleRate;
-	sf::SoundBuffer wetbuffer;
-	sf::Sound sound2;
-	bool lastplayed = true;
-	float alpha = 0.0f;
 	
 	//SETTINGS
 	RenderSettings ini;
@@ -39,16 +27,21 @@ int main()
 	ini.Wireframe = true;
 	ini.xres = 1920;
 	ini.yres = 1080;
-	ini.DefaultText.r = 200;
-	ini.DefaultText.g = 200;
-	ini.DefaultText.b = 200;
+	ini.depth = 32;
+	ini.DefaultText.r = 230;
+	ini.DefaultText.g = 210;
+	ini.DefaultText.b = 210;
 	ini.DefaultText.a = 200;
+	ini.WindowMode = sf::Style::Fullscreen;
 	
 	//VERSION NUMBER
-	sf::String versionno = "Artifice 0.110";
+	sf::String versionno = "HEAT DEATH 0.00";
 	sf::String watermark;
 	sf::String sFPS;
 	int FPS;
+
+	//Seed Random Number Generator
+	srand(time(NULL));
 
 	//Initialize Text
 	sf::Font CourierNew;
@@ -60,19 +53,23 @@ int main()
 	watermarktext.setFillColor(ini.DefaultText);
 
 	//Initialize Sound
-	sf::SoundBufferRecorder recorder;
-	recorder.start();
-	bool Recording = true;
 
+	//Define Monochrome Tint
+	sf::Color heat(230, 210, 210, 20);
+
+	//Initialize Background Static
+	sf::Image backim;
+	backim.create(ini.xres, ini.yres, heat);
+	sf::Texture backtex;
+	sf::Sprite background;
 	
 	//Open Window
-	sf::RenderWindow mywindow(sf::VideoMode(ini.xres, ini.yres), versionno, sf::Style::Fullscreen);
+	sf::RenderWindow mywindow(sf::VideoMode(ini.xres, ini.yres), versionno, ini.WindowMode);
 
 	//Begin Measuring Time
 	sf::Clock clock;
 
-	//Define Window Background Color
-	sf::Color sky(20, 20, 40, 255);
+
 
 	//Run Program Until User Closes Window
 	while (mywindow.isOpen())
@@ -97,66 +94,18 @@ int main()
 		Runtime = Runtime + delta.asSeconds();
 
 		//Reset Window to Blank Background
-		mywindow.clear(sky);
+		mywindow.clear(sf::Color::Black);
+		for (int i = 0; i < ini.xres; i++) {
+			for (int j = 0; j < ini.yres; j++) {
+				backim.setPixel(i, j, sf::Color::Color(230,210,210,rand() % 51));
+			}
+		}
+		backtex.loadFromImage(backim);
+		background.setTexture(backtex);
+		mywindow.draw(background);
 
 		//Update Game Logic
-		if (Runtime >= 5.0 && Recording == true) {
-			recorder.stop();
-			Recording = false;
-			buffer = recorder.getBuffer();
-			buffer.saveToFile("test.ogg");
-			sound.setBuffer(buffer);
-
-			samples = buffer.getSamples();
-			count = buffer.getSampleCount();
-			channels = buffer.getChannelCount();
-			sampleRate = buffer.getSampleRate();
-
-			wetsamples.reserve(count);
-
-			float b = 1.0f - timeconstant;
-			float z = 0;
-
-			for (int n = 0; n < count; n++)
-			{
-				z = samples[n];
-				wetsamples.push_back(z);
-			}
-			for (int n = 0; n < count; n++)
-			{
-				z = samples[n];
-				goodsamples.push_back(z);
-			}
-
-
-			wetbuffer.loadFromSamples(&wetsamples[0], wetsamples.size(), channels, count);
-			sound2.setBuffer(wetbuffer);
-			sound.play();
-		}
-
-		if (!Recording) {
-			
-			for (int n = 1; n <= count; n++) {
-				if ((n % 100) == 0) {
-					sf::Vertex line[] = { sf::Vertex(sf::Vector2f(50 + n / 100,(goodsamples[n] / 50) + 400)), sf::Vector2f(50 + n / 100,400) };
-					mywindow.draw(line, 2, sf::Lines);
-					sf::Vertex line2[] = { sf::Vertex(sf::Vector2f(50 + n / 100,(wetsamples[n] / 50) + 800)), sf::Vector2f(50 + n / 100,800) };
-					mywindow.draw(line2, 2, sf::Lines);
-				}
-			}
-			
-			if (sound.getStatus() != sf::Sound::Status::Playing && sound2.getStatus() != sf::Sound::Status::Playing) {
-				if (lastplayed) {
-					sound2.play();
-					sound2.setPitch(0.05f);
-					lastplayed = false;
-				}
-				else {
-					sound.play();
-					lastplayed = true;
-				}
-			}
-		}
+		
 
 	
 		if (ini.Watermark) {
@@ -165,12 +114,8 @@ int main()
 			sFPS = std::to_string(FPS);
 			watermark = versionno;
 			watermark += " (";
-			std::string devicename = recorder.getDevice();
-			watermark += " Device: )";
-			watermark += devicename;
-			watermark += " - )";
 			watermark += sFPS;
-			watermark += " FPS )";
+			watermark += " FPS)";
 
 			
 			watermarktext.setString(watermark);
