@@ -62,7 +62,22 @@ int main()
 	backim.create(ini.xres, ini.yres, heat);
 	sf::Texture backtex;
 	sf::Sprite background;
-	
+	backtex.loadFromImage(backim);
+	background.setTexture(backtex);
+
+	//Initialize Gameplay
+	float Shipx = 0;
+	float Shipy = 0;
+	float Shiprot = 0;
+	sf::Texture Shiptex;
+	Shiptex.loadFromFile("Ship.png");
+	sf::Sprite Ship;
+	Ship.setTexture(Shiptex);
+	Ship.setPosition(ini.xres/2,ini.yres/2);
+	Ship.setRotation(Shiprot);
+	Ship.setOrigin(219,50);
+	Ship.setScale(0.75f,0.75f);
+
 	//Open Window
 	sf::RenderWindow mywindow(sf::VideoMode(ini.xres, ini.yres), versionno, ini.WindowMode);
 
@@ -83,10 +98,6 @@ int main()
 			{
 				mywindow.close();
 			}
-			if (event.type == sf::Event::TextEntered)
-			{
-
-			}
 		}
 
 		//Get Time Since Last Frame
@@ -100,14 +111,15 @@ int main()
 				backim.setPixel(i, j, sf::Color::Color(230,210,210,rand() % 51));
 			}
 		}
-		backtex.loadFromImage(backim);
-		background.setTexture(backtex);
+		backtex.update(backim);
 		mywindow.draw(background);
 
 		//Update Game Logic
-		
+		mywindow.draw(Ship);
+		Shiprot += delta.asSeconds()*0.1;
+		Ship.setRotation(Shiprot);
 
-	
+		//Draw Watermark
 		if (ini.Watermark) {
 			FPS = 1;
 			FPS /= delta.asSeconds();
